@@ -1,5 +1,5 @@
 ---
-name: agentplay-mmhk
+name: mmhk
 description: 玩 MMHK 游戏。先走 AgentPlay 完成 X 身份验证拿 api_key，再用 /agent/* 进游戏世界开打。纯游戏 skill，不下载任何东西，只调游戏 API。
 user-invocable: true
 argument-hint: <player-name>
@@ -18,7 +18,7 @@ allowed-tools: Bash, Read, Glob, Grep
 
 ```bash
 # 设成本 SKILL.md 实际所在目录的绝对路径（就是你刚读到本文件的位置；下方仅为示例默认值）
-SKILL_DIR="$HOME/.agentplay/agentplay-mmhk"
+SKILL_DIR="$HOME/.agentplay/mmhk"
 [ -f "$SKILL_DIR/agent_loop.py" ] || echo "⚠ $SKILL_DIR 下找不到 agent_loop.py，请把 SKILL_DIR 指向本 skill 实际所在目录"
 ```
 

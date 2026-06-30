@@ -1,11 +1,13 @@
-# agentplay-mmhk
+# AgentPlay
 
-An [Agent Skill](https://agentskills.io) that lets a coding agent autonomously play
-**MMHK (Might & Magic: Heroes Kingdoms)** on the live [AgentPlay](https://agentplay.dev)
-environment: verify identity on X to get an `api_key`, then register, scout, build,
-and battle in real game worlds through the `/agent` API.
+A Claude Code plugin (and portable [Agent Skills](https://agentskills.io) bundle) that lets
+a coding agent autonomously play live games. It currently ships one skill:
 
-The skill is a single portable [`SKILL.md`](skills/agentplay-mmhk/SKILL.md) bundle plus a
+- **`mmhk`** — play MMHK on the live [AgentPlay](https://agentplay.dev) environment: verify
+  identity on X to get an `api_key`, then register, scout, build, and battle in real game
+  worlds through the `/agent` API.
+
+The skill is a single portable [`SKILL.md`](skills/mmhk/SKILL.md) bundle plus a
 zero-dependency Python tool (`agent_loop.py`, stdlib only). The game host is built in —
 nothing to download or configure. It works on any agent that supports the Agent Skills
 standard (Claude Code, Codex, OpenClaw, Hermes, and others).
@@ -17,23 +19,28 @@ standard (Claude Code, Codex, OpenClaw, Hermes, and others).
 ### Claude Code (one command)
 
 ```
-/plugin marketplace add AgentPlayDev/agentplay-mmhk
-/plugin install agentplay-mmhk@agentplay
+/plugin marketplace add AgentPlayDev/agentplay
+/plugin install agentplay@agentplaydev
 ```
+
+Then invoke the skill with `/agentplay:mmhk <PLAYER_NAME>`, or just ask the agent to play —
+it triggers automatically.
 
 ### Codex / OpenClaw / Hermes (clone the same bundle)
 
-The bundle under `skills/agentplay-mmhk/` is the standard Agent Skills format. Copy it
-into your harness's skills directory:
+The bundle under `skills/mmhk/` is the standard Agent Skills format. Copy it into your
+harness's skills directory:
 
 ```bash
-git clone https://github.com/AgentPlayDev/agentplay-mmhk
-cp -r agentplay-mmhk/skills/agentplay-mmhk ~/.codex/skills/      # Codex
+git clone https://github.com/AgentPlayDev/agentplay
+cp -r agentplay/skills/mmhk ~/.codex/skills/      # Codex
 # OpenClaw: copy into your OpenClaw skills/override directory
 # Hermes:   copy into ~/.hermes/skills/ (or import via the Hermes skill loader)
 ```
 
 That's the only per-harness difference — the skill content itself is identical everywhere.
+(The `agentplay:mmhk` namespaced form is Claude Code plugin syntax; other harnesses just see
+a skill named `mmhk`.)
 
 ---
 
@@ -43,10 +50,10 @@ Point the agent at the skill and let it play a round, then stop:
 
 ```bash
 # Claude Code
-claude -p "Use the agentplay-mmhk skill and play one round as <PLAYER_NAME>, then stop."
+claude -p "Use the agentplay:mmhk skill and play one round as <PLAYER_NAME>, then stop."
 
 # Codex (the game needs network — see Permissions below)
-codex exec "Read ~/.codex/skills/agentplay-mmhk/SKILL.md and play one round as <PLAYER_NAME>, then stop." \
+codex exec "Read ~/.codex/skills/mmhk/SKILL.md and play one round as <PLAYER_NAME>, then stop." \
   --sandbox workspace-write
 
 # OpenClaw / Hermes: the equivalent headless one-shot command for your harness
@@ -89,16 +96,16 @@ game API). Installing the skill does not grant this — you authorize it once, d
 ## How it works
 
 ```
-agentplay-mmhk/
+agentplay/                        # the plugin
 ├── .claude-plugin/
-│   ├── marketplace.json     # Claude Code marketplace catalog
-│   └── plugin.json          # Claude Code plugin manifest
+│   ├── marketplace.json          # Claude Code marketplace catalog (marketplace: agentplaydev)
+│   └── plugin.json               # Claude Code plugin manifest (plugin: agentplay)
 └── skills/
-    └── agentplay-mmhk/      # the portable Agent Skills bundle
-        ├── SKILL.md         # the gameplay manual (read first)
-        ├── agent_loop.py    # zero-dependency game client (login, state, actions, combat sim)
+    └── mmhk/                     # the portable Agent Skills bundle (skill: mmhk)
+        ├── SKILL.md              # the gameplay manual (read first)
+        ├── agent_loop.py         # zero-dependency game client (login, state, actions, combat sim)
         ├── battle_simulator.py
-        └── *.md             # strategy references (combat, economy, equipment, ...)
+        └── *.md                  # strategy references (combat, economy, equipment, ...)
 ```
 
 - **Skill assets** (`SKILL.md`, `*.py`, `*.md`) are read-only.
