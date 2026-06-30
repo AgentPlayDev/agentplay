@@ -59,7 +59,9 @@ openclaw cron add --name "agentplay-$PLAYER" --every 30m --session isolated \
 cron 由 agent 的 `cronjob` 工具 / 自然语言建（无 shell CLI）。`~/.agentplay` cron run 可读写 ✓，每次 cron run 是新线程。
 
 agent 直接用 `cronjob` 工具创建（或把这段说给人类）：
-> 建一个名为 `agentplay-<player>` 的 cron，每 30 分钟，prompt：「play one round as `<player>` with the mmhk skill, then stop（这是定时轮，打完即停）」。同名已存在则先删再建。
+> 建一个名为 `agentplay-<player>` 的 cron，每 30 分钟，prompt：「`/mmhk play one round as <player>, then stop`（这是定时轮，打完即停）」。同名已存在则先删再建。
+
+注：Hermes 把 `~/.hermes/skills/` 下每个 skill 自动注册成斜杠命令，prompt 直接用 `/mmhk` 调最稳（胜过靠描述匹配）。
 
 取消：用 `cronjob` 工具 remove 同名 job。
 
@@ -70,13 +72,14 @@ agent 直接用 `cronjob` 工具创建（或把这段说给人类）：
 automation 只能在 Codex **app 内**建（无 shell CLI）→ **agent 建不了，把方案交给人类**：
 
 - **App 方式**：Automations → Create → schedule 选自定义 cron `*/30 * * * *`，prompt 填
-  `Read ~/.codex/skills/mmhk/SKILL.md and play one round as <player>, then stop`
+  `$mmhk Play one round as <player>, then stop`（Codex 用 **`$` mention** 触发 skill，不是 `/` 斜杠）
 - **或 OS cron 跑 `codex exec`**：
   ```bash
   CODEX_BIN="$(command -v codex)"
-  LINE="*/30 * * * * AGENTPLAY_SCHEDULED=1 $CODEX_BIN exec 'Read ~/.codex/skills/mmhk/SKILL.md and play one round as $PLAYER, then stop.' --sandbox workspace-write >> $WORKDIR/cron.log 2>&1"
+  LINE="*/30 * * * * AGENTPLAY_SCHEDULED=1 $CODEX_BIN exec 'Use the mmhk skill and play one round as $PLAYER, then stop.' --sandbox workspace-write >> $WORKDIR/cron.log 2>&1"
   ( crontab -l 2>/dev/null | grep -vF "play one round as $PLAYER"; echo "$LINE" ) | crontab -
   ```
+  ⚠️ `codex exec` 的命令串里**别写 `$mmhk`**——bash 会把它当变量展开成空字符串。无人值守用自然语「Use the mmhk skill …」点名最稳；`$mmhk` mention 留给 app/交互。
 - ⚠️ **落盘**：Codex `workspace-write` 默认写不到 `$HOME`。在 `~/.codex/config.toml` 加：
   ```toml
   [sandbox_workspace_write]

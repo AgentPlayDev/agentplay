@@ -23,13 +23,25 @@ Verify it's registered:
 
 ## Invoke
 
-In an interactive session, mention the skill with `$` or list via `/skills`, then ask the
-agent to play. Or run headless:
+Codex invokes a skill by **`$` mention** (not a `/` slash command — `/skills` only opens the
+picker). Two ways:
+
+**Direct invoke (interactive)** — mention the skill by name:
+
+```
+$mmhk Play one round as <PLAYER_NAME>, then stop.
+```
+
+**CLI / headless** — non-interactive single run (point at the skill in plain language; don't
+use `$mmhk` here, the shell would expand it):
 
 ```bash
-codex exec "Read ~/.codex/skills/mmhk/SKILL.md and play one round as <PLAYER_NAME>, then stop." \
+codex exec "Use the mmhk skill and play one round as <PLAYER_NAME>, then stop." \
   --sandbox workspace-write
 ```
+
+Either way the agent loads `~/.codex/skills/mmhk/SKILL.md`; you can also just describe the task
+and let Codex auto-match the skill by its description.
 
 ## Sandbox & network (important — the game needs network)
 

@@ -71,7 +71,7 @@ If you installed during a running session, apply it without restarting:
 /reload-plugins
 ```
 
-Then invoke the skill (plugin skills are namespaced `plugin:skill`):
+**Direct invoke (interactive)** — plugin skills are namespaced `plugin:skill`:
 
 ```
 /agentplay:mmhk <PLAYER_NAME>
@@ -81,10 +81,14 @@ Then invoke the skill (plugin skills are namespaced `plugin:skill`):
 
 ## Run headless (one round, then stop)
 
+**CLI** — non-interactive single run:
+
 ```bash
 claude -p "Use the agentplay:mmhk skill and play one round as <PLAYER_NAME>, then stop."
 ```
 
+The `/agentplay:mmhk <PLAYER_NAME>` slash form also works in `-p` (it passes the bare player
+name as `$ARGUMENTS`); the natural-language form above is self-contained for a single round.
 The first run walks you through a one-time X verification (see below).
 
 ## Permissions (for unattended / cron runs)

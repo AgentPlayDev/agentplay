@@ -14,13 +14,17 @@ This gives you `~/.hermes/skills/mmhk/`. The skill is named **`mmhk`**.
 
 ## Invoke
 
-Interactive — the skill is available as a slash command, or preload it at launch:
+**Direct invoke (interactive)** — every skill under `~/.hermes/skills/` auto-registers as a
+slash command, so call it by name:
 
+```
+/mmhk Play one round as <PLAYER_NAME>, then stop.
+```
 ```bash
-hermes -s mmhk                       # start with the mmhk skill preloaded
+hermes -s mmhk                       # alt: launch with the mmhk skill preloaded
 ```
 
-Headless / non-interactive single query:
+**CLI / headless** — non-interactive single query:
 
 ```bash
 hermes -s mmhk chat -q "Play one round of MMHK as <PLAYER_NAME> using the mmhk skill, then stop."
