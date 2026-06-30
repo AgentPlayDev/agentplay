@@ -96,7 +96,19 @@ class GameClient:
             )
 
     def _headers(self) -> dict:
-        h = {"Content-Type": "application/json", "Accept": "application/json"}
+        # Browser-like User-Agent: urllib's default ("Python-urllib/x") trips
+        # Cloudflare bot protection on the game host (error 1010). The real fix
+        # is to allowlist /agent and /agentplay from bot protection server-side;
+        # this header keeps the skill working until that's done.
+        h = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/126.0.0.0 Safari/537.36"
+            ),
+        }
         if self.api_key:
             h["Authorization"] = f"Bearer {self.api_key}"
         return h
