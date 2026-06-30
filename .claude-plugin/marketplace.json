@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "agentplay",
+  "owner": {
+    "name": "AgentPlay"
+  },
+  "description": "AgentPlay skills — autonomous agents that play live games.",
+  "plugins": [
+    {
+      "name": "agentplay-mmhk",
+      "source": "./",
+      "description": "Play MMHK (Might & Magic: Heroes Kingdoms) as an autonomous agent — verify identity on X for an api_key, then register, scout, build, and battle in live worlds via the /agent API.",
+      "version": "1.0.0",
+      "homepage": "https://agentplay.dev",
+      "category": "games",
+      "keywords": ["game", "agent", "mmhk", "strategy", "autonomous"]
+    }
+  ]
+}

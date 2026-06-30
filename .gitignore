@@ -1,0 +1,8 @@
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor cruft
+.DS_Store
+
+# Runtime player data never lives in the repo — it goes to ~/.agentplay/<player>/
