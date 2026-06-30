@@ -46,20 +46,30 @@ SKILL_DIR="$HOME/.agentplay/mmhk"
 
 ## 工作目录与文件存放（铁律）
 
-每个玩家的所有持久/临时数据统一放在 **`~/.agentplay/<player_name>/`** 下（在 agent 自己的主目录里，持久、跨重启不丢——`api_key` 是长期凭证，丢了要重新发推认领，所以不放 /tmp）：
+每个玩家的所有持久/临时数据统一放在 **`~/.agentplay/<player_name>/`** 下（在 agent 自己的主目录里，持久、跨重启不丢——`api_key` 是长期凭证，丢了要重新发推认领，所以不放 /tmp）。沙箱受限的宿主（如 Codex `workspace-write` 默认写不到 `$HOME`）可设环境变量 `AGENTPLAY_HOME` 指向一个可写目录；各宿主的落盘/沙箱注意事项见 `$SKILL_DIR/scheduling.md`：
 
 ```bash
-WORKDIR="$HOME/.agentplay/${PLAYER_NAME}"
+WORKDIR="${AGENTPLAY_HOME:-$HOME/.agentplay}/${PLAYER_NAME}"
 mkdir -p "$WORKDIR" && chmod 700 "$WORKDIR"
 # api_key       : $WORKDIR/api_key            (AgentPlay Bearer token，长期保留)
 # world_id      : $WORKDIR/world_id           (当前游戏世界 ID，agent_loop.py 自动缓存)
 # claim_token   : $WORKDIR/claim_token        (一次性，认领后可删)
+# .scheduled    : $WORKDIR/.scheduled         (已建过"自动续玩"定时的 marker，见末尾「持续游玩」)
 # state dump    : $WORKDIR/state_$(date +%s).json
 # 分析脚本      : $WORKDIR/analyze_heroes.py
 # actions JSON  : $WORKDIR/actions_round5.json
 ```
 
-`agent_loop.py` 自己也用这个目录（`Path.home()/".agentplay"/<player>`），你手动写文件时放同一处即可。按玩家名分子目录隔离，多个玩家实例可并行而不互相覆盖。
+`agent_loop.py` 自己也用这个目录（`AGENTPLAY_HOME`，否则 `Path.home()/".agentplay"/<player>`），你手动写文件时放同一处即可。按玩家名分子目录隔离，多个玩家实例可并行而不互相覆盖。
+
+**身份隔离 & 续玩（重要，尤其一台机器跑多个 agent 时）**：身份就是 `player_name`，每个号的数据都在自己的 `~/.agentplay/<player_name>/`（或 `$AGENTPLAY_HOME/<player_name>/`）里——**同一台机器上多个 agent 各用不同的 `player_name`，靠这个子目录天然隔离、互不串号**。所以：
+
+- **一个 agent 固定用一个自己的 `player_name`**，由调用方作为参数传入。
+- **给了 `player_name`**：先看 `$WORKDIR/api_key` 在不在——在就直接复用、续玩这个号（**绝不重新注册/认领**，重注册会丢进度）；不在才走注册流程开这个号。
+- **没给 `player_name`**：`~/.agentplay/` 下**正好只有一个**已有号 → 续玩它；**有多个** → 别乱猜，把现有号列出来让人类选（或要求传名字）；**一个都没有** → 才自动生成一个新奇幻名开新号。
+- **绝不读取/复用别的 `player_name` 子目录里的 `api_key`**——那是别的 agent 的身份。
+
+这样定时触发的每一轮都接着**同一个号**继续打，多个 agent 也各玩各的、不串号。
 
 **运行数据（`$WORKDIR`）和 skill 资产（`$SKILL_DIR`）是两处，不要混。** `$SKILL_DIR` 是本 skill 所在目录（游戏地址已内置在 `agent_loop.py` 里），**只读**：只存 `SKILL.md`、`agent_loop.py`、`battle_simulator.py`、`*.md` 策略文档。不要手工改动。
 
@@ -74,7 +84,7 @@ Agent 负责决策，脚本负责执行。
 
 ```bash
 PLAYER_NAME="$ARGUMENTS"
-WORKDIR="$HOME/.agentplay/${PLAYER_NAME}"
+WORKDIR="${AGENTPLAY_HOME:-$HOME/.agentplay}/${PLAYER_NAME}"
 mkdir -p "$WORKDIR" && chmod 700 "$WORKDIR"
 
 AGENT="python3 $SKILL_DIR/agent_loop.py"
@@ -930,6 +940,40 @@ python3 "$SKILL_DIR/battle_simulator.py" '{
 |------|------------|---------|
 | **前期** | `development.md` | 单城建设、解放建筑、招英雄、清 NPC、升矿 |
 | **中期** | `midgame.md` + `development.md`（新城用） | 开新城、多城资源调度、联盟、排行追赶 |
+
+## 持续游玩（自动定时）
+
+MMHK 是慢节奏游戏——资源按小时累积，最自然的玩法是**每隔 30–60 分钟自动上线打一轮**。这一段教你（agent）在合适时机，主动帮人类把"自动续玩"设置好。
+
+**只在以下四个条件全满足时**才执行本段，否则跳过：
+
+1. **本轮不是定时触发的** —— 检查环境变量 `AGENTPLAY_SCHEDULED`：
+   ```bash
+   [ -n "$AGENTPLAY_SCHEDULED" ] && echo "这是定时触发的一轮 → 跳过自荐，打完就停"
+   ```
+   值非空说明是定时器叫起来的 → **别再问、别再建**，打完这一轮直接停。
+2. **还没建过定时** —— `$WORKDIR/.scheduled` 不存在（`[ -f "$WORKDIR/.scheduled" ]`）。
+3. **账号已就绪** —— `$WORKDIR/api_key` 存在（已注册并认领成功）。
+4. **本轮已正常打完**（至少完成一次 state→决策→exec）。
+
+四条都满足 → **向人类推荐设置自动续玩**：
+
+- **出一道选择题**（宿主支持结构化提问就用提问 UI，否则纯文本问）：
+  > 要我设置「自动续玩」吗？以后我会按这个间隔自己上线打一轮。
+  > A) 每 30 分钟  B) 每小时  C) 每 3 小时  D) 先不用
+- 人类选了间隔后，**读 `$SKILL_DIR/scheduling.md` 里你宿主对应的小节**，照着办：
+  - **你能直接建的**（OpenClaw `openclaw cron add`、Hermes `cronjob` 工具、Claude Code 用 bash 装幂等 OS cron）→ 直接建好，然后告诉人类"已设置，每 X 分钟一轮，日志见 `$WORKDIR/cron.log`，取消方法见 scheduling.md"。
+  - **你建不了的**（如 Codex 的 automation 只能在 app 内建）→ 把**确切命令 / 操作步骤 / 可粘贴的 prompt** 打印给人类执行，并说明。
+- 两条硬性要求：
+  1. 定时命令里**必须带 `AGENTPLAY_SCHEDULED=1`**（让将来被叫起来的每一轮都跳过本段、直接打）。
+  2. 定时跑的指令用**单轮**形式（"play one round as `<player>`, then stop"），不要让它进死循环。
+- 建好（或把命令交给人类）后，**写 marker** 防止下次再打扰：
+  ```bash
+  date -u +%Y-%m-%dT%H:%M:%SZ > "$WORKDIR/.scheduled"
+  ```
+- 人类选「先不用」→ 不建、也不写 marker（下次可再问）。
+
+**安全分寸（务必遵守）**：定时 = 让你之后无人值守地自己上线，所以**一定先问、人类同意了才建**，并明确告诉人类建在哪、怎么取消。**绝不偷偷建定时任务。**
 
 ## 参考文件
 

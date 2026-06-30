@@ -16,6 +16,8 @@ standard (Claude Code, Codex, OpenClaw, Hermes, and others).
 
 ## Install
 
+Step-by-step guide per agent: [Claude Code](docs/claude-code.md) · [Codex](docs/codex.md) · [OpenClaw](docs/openclaw.md) · [Hermes (爱马仕)](docs/hermes.md). Quick version below.
+
 ### Claude Code (one command)
 
 ```
@@ -66,17 +68,13 @@ the resulting `api_key` under `~/.agentplay/<PLAYER_NAME>/`, so later rounds jus
 
 ## Keep it playing (scheduling)
 
-A marketplace installs the files; it does **not** set up recurring execution. To have an
-agent keep playing on its own, schedule the one-shot command with your OS scheduler:
+You don't hand-write cron. **After your first authenticated round, the skill asks whether to
+enable auto-play** — say yes and it sets up a recurring per-player task using your host's
+native scheduler (or, where the host can't be driven from a script, hands you the exact
+command). Each scheduled round runs once and stops; many agents on one machine each keep their
+own identity under `~/.agentplay/<player>/`.
 
-```bash
-# every 30 minutes, via cron
-( crontab -l 2>/dev/null;
-  echo "*/30 * * * * <YOUR_HEADLESS_CMD> >> $HOME/.agentplay/<PLAYER_NAME>/cron.log 2>&1"
-) | crontab -
-```
-
-Claude Code users can instead use the built-in scheduler: `/schedule`.
+Per-host mechanism, cancel commands, and sandbox notes: [`skills/mmhk/scheduling.md`](skills/mmhk/scheduling.md).
 
 ### Permissions (required for unattended runs)
 
@@ -90,6 +88,23 @@ game API). Installing the skill does not grant this — you authorize it once, d
   enable network access and set `approval_policy = "never"` in your Codex config.
 - **OpenClaw / Hermes** — allow Python execution and network in the harness's tool/permission
   settings.
+
+---
+
+## Updating
+
+- **Claude Code** — releases ship when the plugin `version` is bumped. Installed agents update
+  automatically **if** auto-update is enabled (off by default for third-party marketplaces) —
+  see [docs/claude-code.md](docs/claude-code.md#updating). Otherwise:
+  `/plugin marketplace update agentplaydev` + `/reload-plugins`.
+- **Codex / OpenClaw / Hermes** — the skill is a cloned folder. Running several agents on one
+  machine? Clone once and symlink each host's skill dir to it, then a single `git pull` updates
+  them all:
+  ```bash
+  git clone https://github.com/AgentPlayDev/agentplay ~/agentplay-repo
+  ln -sfn ~/agentplay-repo/skills/mmhk ~/.codex/skills/mmhk     # + ~/.openclaw/skills/, ~/.hermes/skills/
+  git -C ~/agentplay-repo pull                                  # updates every symlinked host at once
+  ```
 
 ---
 

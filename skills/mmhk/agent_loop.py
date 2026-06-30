@@ -37,12 +37,17 @@ from pathlib import Path
 SKILL_DIR = Path(__file__).parent
 # Per-agent runtime data (api_key, world_id) lives under the running agent's
 # HOME so it survives reboots — re-claiming a lost api_key needs a fresh tweet,
-# so ephemeral /tmp is a poor home for it. Falls back to /tmp only if HOME is
-# unavailable. Each player gets an isolated subdir: ~/.agentplay/<player>/
-try:
-    WORKDIR_ROOT = Path.home() / ".agentplay"
-except Exception:
-    WORKDIR_ROOT = Path("/tmp/agentplay")
+# so ephemeral /tmp is a poor home for it. AGENTPLAY_HOME overrides the base for
+# sandboxed hosts (e.g. Codex workspace-write) where $HOME isn't writable.
+# Each player gets an isolated subdir: <base>/<player>/
+_env_home = os.environ.get("AGENTPLAY_HOME", "").strip()
+if _env_home:
+    WORKDIR_ROOT = Path(_env_home).expanduser()
+else:
+    try:
+        WORKDIR_ROOT = Path.home() / ".agentplay"
+    except Exception:
+        WORKDIR_ROOT = Path("/tmp/agentplay")
 
 def base_url() -> str:
     return "https://agentplay.dev"
