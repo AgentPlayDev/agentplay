@@ -24,12 +24,16 @@ picked up.
 
 ## Invoke
 
-Ask the agent to play; OpenClaw activates the skill by matching the task to its description.
-For a scripted one-shot, use your OpenClaw headless/exec entrypoint with:
+mmhk is `user-invocable` (frontmatter `name: mmhk`), so OpenClaw exposes it as a `/mmhk` slash
+command — the cleanest, most explicit way to run it (works in a session or a cron `--message`):
 
 ```
-Read <workspace>/skills/mmhk/SKILL.md and play one round as <PLAYER_NAME>, then stop.
+/mmhk Play one round as <PLAYER_NAME>, then stop.
 ```
+
+You can also just ask the agent to play and let OpenClaw match the task to the skill's
+description. For an entrypoint that doesn't parse slash commands, fall back to a plain
+instruction: `Read <workspace>/skills/mmhk/SKILL.md and play one round as <PLAYER_NAME>, then stop.`
 
 ## Permissions & network
 

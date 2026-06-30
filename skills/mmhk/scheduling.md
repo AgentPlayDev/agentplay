@@ -13,7 +13,11 @@
 
 ## Claude Code
 
-没有创建 routine 的 shell CLI（`/schedule` 只能交互、`CronCreate` 只是 session 内工具）→ 用 bash 装一条 **OS cron**（本地 Desktop/headless 用；**不要用 Cloud Routine**，云端无 `$HOME`、读不到 api_key）。
+两条路，按"人在不在机器边"选：
+
+### A) 无人值守（默认推荐）—— OS cron
+
+关掉终端、登出、重启后都还能续玩，一台机器多号并行也只靠一个系统 daemon。没有创建 routine 的 shell CLI（`/schedule` 只能交互、`CronCreate`/`/loop` 都是 session 内工具，会话一退就停）→ 用 bash 装一条 **OS cron**（本地 Desktop/headless 用；**不要用 Cloud Routine**，云端无 `$HOME`、读不到 api_key）。
 
 安装（幂等，按 player 去重）：
 ```bash
@@ -24,6 +28,19 @@ LINE="*/30 * * * * AGENTPLAY_SCHEDULED=1 $CLAUDE_BIN -p '/agentplay:mmhk $PLAYER
 取消：`crontab -l | grep -vF "/agentplay:mmhk $PLAYER'" | crontab -`
 权限：无人值守要免逐次授权——上面用了 `--permission-mode acceptEdits`，更放开可用 settings.json allowlist 或 `--dangerously-skip-permissions`。
 
+### B) 前台陪玩（可选）—— `/loop`
+
+人在、机器开着、想盯着连打几轮时最顺手：不用动 crontab，在当前会话里直接打
+
+```
+/loop 30m /agentplay:mmhk $PLAYER
+```
+
+Claude Code 会每 30 分钟把这条 slash 命令在**同一个会话**里再跑一轮（底层是 `ScheduleWakeup` 自唤醒）。看够了 `Esc`/`Ctrl-C` 即停。
+
+⚠️ 和 cron 的本质区别：`/loop` **活在这个会话里**——关终端/合盖/重启就停，不是无人值守，不跨重启，多号要各开一个会话。所以**它是 cron 的补充，不是替代**：要"我之后自己上线、你不用管"用 A；要"现在陪我连打"用 B。
+传不了 `AGENTPLAY_SCHEDULED` env，开 `/loop` 前先写一次 marker 防止每轮都来问"要不要设自动续玩"：`date -u +%Y-%m-%dT%H:%M:%SZ > "$WORKDIR/.scheduled"`。
+
 ## OpenClaw
 
 原生 cron 可命令行装（最干净）。⚠️ isolated session 只看**全局** `~/.openclaw/skills/` → 确保 mmhk 装在全局 skills 目录；`~/.agentplay` 隔离 run 可读写 ✓。
@@ -32,10 +49,10 @@ LINE="*/30 * * * * AGENTPLAY_SCHEDULED=1 $CLAUDE_BIN -p '/agentplay:mmhk $PLAYER
 ```bash
 openclaw cron remove --name "agentplay-$PLAYER" 2>/dev/null || true
 openclaw cron add --name "agentplay-$PLAYER" --every 30m --session isolated \
-  --message "Scheduled AgentPlay round (打完即停): play one round as $PLAYER using the mmhk skill, then stop"
+  --message "/mmhk Play one round as $PLAYER, then stop"
 ```
 取消：`openclaw cron remove --name "agentplay-$PLAYER"`（job 存于 `~/.openclaw/cron/jobs.json`）。
-注：message 传不了 env，靠 `$WORKDIR/.scheduled` marker 防重复自荐；prompt 已声明"打完即停"。
+注：mmhk 是 `user-invocable` skill（`name: mmhk`）→ OpenClaw 把它暴露成 `/mmhk` 斜杠命令，直接调最稳（确保 skill 真正加载，胜过"靠描述匹配 / 叫 agent 读 SKILL.md"）。message 传不了 env，靠 `$WORKDIR/.scheduled` marker 防重复自荐；prompt 里的"Play one round … then stop"声明单轮、防死循环（SKILL.md 标准循环第 12 步会"回到第 1 步"）。
 
 ## Hermes（爱马仕）
 
@@ -47,6 +64,8 @@ agent 直接用 `cronjob` 工具创建（或把这段说给人类）：
 取消：用 `cronjob` 工具 remove 同名 job。
 
 ## Codex
+
+> Codex 暂无 Claude Code `/loop` 那样的会话内循环命令（仍是 open feature request，未发布）；前台连打只能手动重发，或下面的 `codex exec` + OS cron 走无人值守。
 
 automation 只能在 Codex **app 内**建（无 shell CLI）→ **agent 建不了，把方案交给人类**：
 
